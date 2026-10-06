@@ -1,0 +1,130 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+/* Hetta brand tokens, mapped onto shadcn's variable names so every ui/ component picks them up. */
+:root {
+  --radius: 0.875rem;
+
+  --background: #fff6e5; /* cream */
+  --foreground: #1b1b1b; /* ink */
+  --card: #ffffff;
+  --card-foreground: #1b1b1b;
+  --popover: #ffffff;
+  --popover-foreground: #1b1b1b;
+
+  --primary: #0b6e6d; /* teal */
+  --primary-foreground: #ffffff;
+  --secondary: #f5ebd8;
+  --secondary-foreground: #1b1b1b;
+  --accent: #ffb627; /* sun yellow */
+  --accent-foreground: #1b1b1b;
+  --muted: #f5ebd8;
+  --muted-foreground: #5c5447;
+  --destructive: #c62828;
+
+  --border: #e8dcc4;
+  --input: #cfc2a8;
+  --ring: #f25c05;
+
+  /* brand extras */
+  --brand-orange: #f25c05;
+  --brand-orange-strong: #c24a04;
+  --brand-teal-subtle: #e7f4f3;
+  --brand-teal-strong: #095958;
+  --ink: #1b1b1b;
+}
+
+@theme inline {
+  --font-sans: "Readex Pro", Tahoma, system-ui, sans-serif;
+  --font-display: "Rakkas", "Readex Pro", serif;
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-ink: var(--ink);
+  --color-orange: var(--brand-orange);
+  --color-orange-strong: var(--brand-orange-strong);
+  --color-teal-subtle: var(--brand-teal-subtle);
+  --color-teal-strong: var(--brand-teal-strong);
+
+  --radius-sm: calc(var(--radius) - 6px);
+  --radius-md: calc(var(--radius) - 4px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 6px);
+  --radius-2xl: calc(var(--radius) + 10px);
+
+  /* the hard "sticker" shadow from the brand */
+  --shadow-sticker-sm: 3px 3px 0 var(--ink);
+  --shadow-sticker: 5px 5px 0 var(--ink);
+  --shadow-sticker-lg: 8px 8px 0 var(--ink);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/60;
+  }
+  html {
+    scroll-behavior: smooth;
+  }
+  /* hide every scrollbar; scrolling still works */
+  * {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  *::-webkit-scrollbar {
+    display: none;
+  }
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+  }
+}
+
+/* compositor-only float for the hero stickers (no JS per frame) */
+@keyframes float {
+  50% {
+    translate: 0 var(--float, -10px);
+  }
+}
+.animate-float {
+  animation: float var(--dur, 4s) ease-in-out infinite;
+  will-change: translate;
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-float {
+    animation: none;
+  }
+}
+
+/* announcement marquee: two identical halves, slide one half's width, loop seamlessly */
+@keyframes marquee {
+  from {
+    transform: translateX(-50%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+.marquee-track {
+  animation: marquee 160s linear infinite;
+  will-change: transform;
+}
+@media (prefers-reduced-motion: reduce) {
+  .marquee-track {
+    animation: none;
+  }
+}
