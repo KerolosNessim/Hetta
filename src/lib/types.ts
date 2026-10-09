@@ -4,6 +4,7 @@ export type Category = {
   slug: string
   color: string
   image_url: string | null
+  parent_id: string | null
   is_visible: boolean
   show_on_home: boolean
   sort_order: number
@@ -19,7 +20,6 @@ export type ProductSize = {
   sort_order: number
 }
 
-export type Finish = 'matte' | 'gloss'
 export type Badge = 'best_seller' | 'new' | 'sale'
 
 export type Product = {
@@ -30,33 +30,12 @@ export type Product = {
   category_id: string | null
   kind: 'single' | 'pack'
   badge: Badge | null
-  finishes: Finish[]
   images: string[]
   is_published: boolean
   is_featured: boolean
   sort_order: number
   product_sizes: ProductSize[]
-  category?: Pick<Category, 'id' | 'name' | 'slug' | 'color'> | null
-}
-
-export type BannerPlacement = 'home_hero' | 'home_middle' | 'announcement' | 'shop'
-export type BannerTarget = 'shop' | 'category' | 'product' | 'whatsapp' | 'url'
-
-export type Banner = {
-  id: string
-  title: string
-  subtitle: string | null
-  placement: BannerPlacement
-  cta_label: string | null
-  cta_target: BannerTarget
-  cta_value: string | null
-  bg_color: string
-  image_desktop_url: string | null
-  image_mobile_url: string | null
-  starts_at: string | null
-  ends_at: string | null
-  is_active: boolean
-  sort_order: number
+  category?: Pick<Category, 'id' | 'name' | 'slug' | 'color' | 'parent_id'> | null
 }
 
 export type Settings = {
@@ -67,24 +46,39 @@ export type Settings = {
   bulk_min_qty: number | null
 }
 
-export const FINISH_LABEL: Record<Finish, string> = { matte: 'مطفي', gloss: 'لامع' }
 export const BADGE_LABEL: Record<Badge, string> = { best_seller: 'الأكثر طلباً', new: 'جديد', sale: 'عرض' }
-export const PLACEMENT_LABEL: Record<BannerPlacement, string> = {
-  home_hero: 'الرئيسية — البانر الكبير',
-  home_middle: 'الرئيسية — وسط الصفحة',
-  announcement: 'شريط الإعلان فوق',
-  shop: 'صفحة المتجر',
-}
-export const TARGET_LABEL: Record<BannerTarget, string> = {
-  shop: 'صفحة المتجر',
-  category: 'قسم معيّن',
-  product: 'منتج معيّن',
-  whatsapp: 'الواتساب',
-  url: 'رابط خارجي',
-}
 
 /** Lowest available price, used on product cards ("يبدأ من"). */
 export function startingPrice(p: Pick<Product, 'product_sizes'>) {
   const prices = p.product_sizes.filter((s) => s.is_available).map((s) => Number(s.price))
   return prices.length ? Math.min(...prices) : null
+}
+
+/** Main categories followed by their sub-categories, each with its depth (0 or 1). */
+export function categoryTree<T extends Pick<Category, 'id' | 'parent_id'>>(cats: T[]): { cat: T; depth: number }[] {
+  const ids = new Set(cats.map((c) => c.id))
+  const isTop = (c: T) => !c.parent_id || !ids.has(c.parent_id)
+  return cats.filter(isTop).flatMap((top) => [
+    { cat: top, depth: 0 },
+    ...cats.filter((c) => c.parent_id === top.id).map((cat) => ({ cat, depth: 1 })),
+  ])
+}
+
+/** "Main › Sub" for a sub-category, or just the name for a main category. */
+export function categoryLabel(cat: Pick<Category, 'name' | 'parent_id'> | null | undefined, all: Pick<Category, 'id' | 'name'>[] = []) {
+  if (!cat) return ''
+  const parent = cat.parent_id ? all.find((c) => c.id === cat.parent_id) : undefined
+  return parent ? `${parent.name} › ${cat.name}` : cat.name
+}
+
+export type Review = {
+  id: string
+  author_name: string
+  author_label: string | null
+  product_label: string | null
+  rating: number
+  body: string
+  is_published: boolean
+  sort_order: number
+  created_at: string
 }

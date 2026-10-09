@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Field, Input, Label, Select, Switch, Textarea } from '@/components/ui/form-controls'
 import { Card, CardContent, CardHeader, CardTitle, Skeleton } from '@/components/ui/misc'
 import { adminDeleteProduct, adminGetProduct, adminListCategories, adminSaveProduct, type ProductInput } from '@/lib/api'
-import { BADGE_LABEL, FINISH_LABEL, type Badge, type Finish, type ProductSize } from '@/lib/types'
+import { BADGE_LABEL, categoryTree, type Badge, type ProductSize } from '@/lib/types'
 import { useAsync } from '@/lib/use-async'
 import { slugify } from '@/lib/utils'
 
@@ -18,7 +18,6 @@ const EMPTY: ProductInput = {
   category_id: null,
   kind: 'single',
   badge: null,
-  finishes: ['matte', 'gloss'],
   images: [],
   is_published: false,
   is_featured: false,
@@ -146,22 +145,6 @@ export default function AdminProductFormPage() {
                   <SizeRow key={i} s={s} i={i} onChange={setSize} onRemove={() => set('product_sizes', form.product_sizes.filter((_, j) => j !== i))} />
                 ))}
               </div>
-              <fieldset className="flex flex-col gap-2">
-                <legend className="mb-2 text-sm font-medium">الخامات المتاحة</legend>
-                <div className="flex gap-5">
-                  {(Object.keys(FINISH_LABEL) as Finish[]).map((f) => (
-                    <label key={f} className="flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        className="size-[18px] accent-primary"
-                        checked={form.finishes.includes(f)}
-                        onChange={(e) => set('finishes', e.target.checked ? [...form.finishes, f] : form.finishes.filter((x) => x !== f))}
-                      />
-                      {FINISH_LABEL[f]}
-                    </label>
-                  ))}
-                </div>
-              </fieldset>
             </CardContent>
           </Card>
         </div>
@@ -183,15 +166,15 @@ export default function AdminProductFormPage() {
           <Card>
             <CardHeader><CardTitle>التصنيف</CardTitle></CardHeader>
             <CardContent>
-              <Field label="القسم" htmlFor="cat">
+              <Field label="القسم" htmlFor="cat" hint="اختار قسم رئيسي بس، أو قسم فرعي جواه.">
                 <Select id="cat" value={form.category_id ?? ''} onChange={(e) => set('category_id', e.target.value || null)}>
                   <option value="">بدون قسم</option>
-                  {cats.data?.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  {categoryTree(cats.data ?? []).map(({ cat: c, depth }) => <option key={c.id} value={c.id}>{depth ? `— ${c.name}` : c.name}</option>)}
                 </Select>
               </Field>
               <Field label="النوع" htmlFor="kind">
                 <Select id="kind" value={form.kind} onChange={(e) => set('kind', e.target.value as 'single' | 'pack')}>
-                  <option value="single">استيكر فردي</option>
+                  <option value="single">منتج فردي</option>
                   <option value="pack">باكدج</option>
                 </Select>
               </Field>

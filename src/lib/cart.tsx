@@ -1,14 +1,12 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
-import type { Finish } from './types'
 
 export type CartItem = {
-  key: string // productId|size|finish
+  key: string // productId|size
   productId: string
   slug: string
   name: string
   color: string
   sizeName: string
-  finish: Finish
   price: number
   qty: number
 }
@@ -50,7 +48,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo<CartCtx>(() => {
     const add: CartCtx['add'] = (item, qty = 1) => {
-      const key = `${item.productId}|${item.sizeName}|${item.finish}`
+      const key = `${item.productId}|${item.sizeName}`
       setItems((prev) => {
         const hit = prev.find((i) => i.key === key)
         if (hit) return prev.map((i) => (i.key === key ? { ...i, qty: i.qty + qty } : i))

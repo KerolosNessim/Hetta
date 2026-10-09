@@ -1,4 +1,3 @@
-import { FINISH_LABEL } from './types'
 import type { CartItem } from './cart'
 
 export type DeliveryInfo = { name: string; phone: string; governorate: string; address: string; notes: string }
@@ -17,7 +16,7 @@ export function whatsappLink(number: string, message: string) {
 
 export function orderMessage(items: CartItem[], info: DeliveryInfo) {
   const lines = items.map(
-    (it) => `• ${it.name} (${it.sizeName}، ${FINISH_LABEL[it.finish]}) × ${it.qty} = ${it.price * it.qty} ج`,
+    (it) => `• ${it.name} (${it.sizeName}) × ${it.qty} = ${it.price * it.qty} ج`,
   )
   const subtotal = items.reduce((s, it) => s + it.price * it.qty, 0)
   return [
@@ -36,10 +35,19 @@ export function orderMessage(items: CartItem[], info: DeliveryInfo) {
 }
 
 export const CUSTOM_STICKER_MESSAGE = 'أهلاً حتة، عايز أصمم استيكر بفكرتي. هبعتلكم الصورة أو الفكرة والمقاس اللي عايزه.'
-export const BULK_MESSAGE = 'أهلاً حتة، عايز عرض سعر لاستيكرات بالكمية لـ (ورك سبيس / إيفنت / شركة).'
 
 export const GOVERNORATES = [
   'القاهرة', 'الجيزة', 'الإسكندرية', 'القليوبية', 'الدقهلية', 'الشرقية', 'الغربية', 'المنوفية', 'البحيرة', 'كفر الشيخ',
   'دمياط', 'بورسعيد', 'الإسماعيلية', 'السويس', 'الفيوم', 'بني سويف', 'المنيا', 'أسيوط', 'سوهاج', 'قنا',
   'الأقصر', 'أسوان', 'البحر الأحمر', 'الوادي الجديد', 'مطروح', 'شمال سيناء', 'جنوب سيناء',
 ]
+
+/** Quote request built from the "partnerships & events" picker on the home page. */
+export function bulkQuoteMessage({ occasion, items, qty }: { occasion: string; items: string[]; qty: number }) {
+  return [
+    'أهلاً حتة، عايز عرض سعر بالكمية.',
+    `المناسبة: ${occasion}`,
+    `القطع: ${items.join('، ')}`,
+    `الكمية التقريبية: ${qty.toLocaleString('ar-EG')}+ قطعة`,
+  ].join('\n')
+}

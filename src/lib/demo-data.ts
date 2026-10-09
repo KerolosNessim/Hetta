@@ -1,15 +1,35 @@
 // Shown only while Supabase is not connected. Prices are placeholders, not real pricing.
-import type { Banner, Category, Product, Settings } from "./types";
+import type { Category, Product, Settings } from "./types";
+
+const main = (id: string, name: string, slug: string, color: string, sort_order: number): Category => ({
+  id,
+  name,
+  slug,
+  color,
+  image_url: null,
+  parent_id: null,
+  is_visible: true,
+  show_on_home: true,
+  sort_order,
+});
 
 export const demoCategories: Category[] = [
+  main("m1", "Stickers", "stickers", "#0B6E6D", 1),
+  main("m2", "Mugs", "mugs", "#F25C05", 2),
+  main("m3", "Notebooks", "notebooks", "#FFB627", 3),
+  main("m4", "IDs", "id-cards", "#FFC6DD", 4),
+  main("m5", "Coasters", "coasters", "#FFF6E5", 5),
+  main("m6", "Medals", "medals", "#1B1B1B", 6),
+  main("m7", "Pens", "pens", "#0B6E6D", 7),
   {
     id: "c1",
     name: "كليات وطلبة",
     slug: "college",
     color: "#0B6E6D",
     image_url: null,
+    parent_id: "m1",
     is_visible: true,
-    show_on_home: true,
+    show_on_home: false,
     sort_order: 1,
   },
   {
@@ -18,8 +38,9 @@ export const demoCategories: Category[] = [
     slug: "egyptian-memes",
     color: "#FFB627",
     image_url: null,
+    parent_id: "m1",
     is_visible: true,
-    show_on_home: true,
+    show_on_home: false,
     sort_order: 2,
   },
   {
@@ -28,8 +49,9 @@ export const demoCategories: Category[] = [
     slug: "cute",
     color: "#FFC6DD",
     image_url: null,
+    parent_id: "m1",
     is_visible: true,
-    show_on_home: true,
+    show_on_home: false,
     sort_order: 3,
   },
   {
@@ -38,8 +60,9 @@ export const demoCategories: Category[] = [
     slug: "coffee",
     color: "#F25C05",
     image_url: null,
+    parent_id: "m1",
     is_visible: true,
-    show_on_home: true,
+    show_on_home: false,
     sort_order: 4,
   },
   {
@@ -48,8 +71,9 @@ export const demoCategories: Category[] = [
     slug: "packs",
     color: "#1B1B1B",
     image_url: null,
+    parent_id: "m1",
     is_visible: true,
-    show_on_home: true,
+    show_on_home: false,
     sort_order: 5,
   },
 ];
@@ -95,13 +119,12 @@ const p = (
     category_id: catId,
     kind: "single",
     badge: null,
-    finishes: ["matte", "gloss"],
     images: [],
     is_published: true,
     is_featured: false,
     sort_order: 0,
     product_sizes: sizes(20),
-    category: { id: cat.id, name: cat.name, slug: cat.slug, color: cat.color },
+    category: { id: cat.id, name: cat.name, slug: cat.slug, color: cat.color, parent_id: cat.parent_id },
     ...extra,
   };
 };
@@ -126,42 +149,6 @@ export const demoProducts: Product[] = [
     kind: "pack",
     product_sizes: sizes(150),
   }),
-];
-
-export const demoBanners: Banner[] = [
-  {
-    id: "b1",
-    title: "لزّق حتة من شخصيتك",
-    subtitle:
-      "استيكرات للابتوب والإزازة والموبايل والكشكول. اختار اللي يشبهك، والأوردر يتأكد على الواتساب.",
-    placement: "home_hero",
-    cta_label: "بص بصه🤣",
-    cta_target: "shop",
-    cta_value: null,
-    bg_color: "#0B6E6D",
-    image_desktop_url: null,
-    image_mobile_url: null,
-    starts_at: null,
-    ends_at: null,
-    is_active: true,
-    sort_order: 1,
-  },
-  {
-    id: "b2",
-    title: "شحن لكل محافظات مصر · الطلب بيكمل على الواتساب في ثانية",
-    subtitle: null,
-    placement: "announcement",
-    cta_label: null,
-    cta_target: "shop",
-    cta_value: null,
-    bg_color: "#1B1B1B",
-    image_desktop_url: null,
-    image_mobile_url: null,
-    starts_at: null,
-    ends_at: null,
-    is_active: true,
-    sort_order: 1,
-  },
 ];
 
 export const demoSettings: Settings = {

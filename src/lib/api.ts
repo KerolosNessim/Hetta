@@ -1,8 +1,8 @@
 import { supabase } from './supabase'
-import { demoBanners, demoCategories, demoProducts, demoSettings } from './demo-data'
-import type { Banner, BannerPlacement, Category, Product, ProductSize, Settings } from './types'
+import { demoCategories, demoProducts, demoSettings } from './demo-data'
+import type { Category, Product, ProductSize, Review, Settings } from './types'
 
-const PRODUCT_SELECT = '*, product_sizes(*), category:categories(id, name, slug, color)'
+const PRODUCT_SELECT = '*, product_sizes(*), category:categories(id, name, slug, color, parent_id)'
 
 function sortSizes(p: Product): Product {
   return { ...p, product_sizes: [...(p.product_sizes ?? [])].sort((a, b) => a.sort_order - b.sort_order) }
@@ -28,15 +28,25 @@ function must<T>(res: { data: T | null; error: { message: string } | null }): T 
 
 // ───────────────────────── storefront (public reads) ─────────────────────────
 
-export function getCategories(opts: { homeOnly?: boolean } = {}): Promise<Category[]> {
-  return memo(`categories:${!!opts.homeOnly}`, () => loadCategories(opts))
+/** All visible categories, flat. Sub-categories have a `parent_id`; `topOnly` / `homeOnly` return main categories only. */
+export function getCategories(opts: { homeOnly?: boolean; topOnly?: boolean } = {}): Promise<Category[]> {
+  return memo(`categories:${!!opts.homeOnly}:${!!opts.topOnly}`, () => loadCategories(opts))
 }
 
-async function loadCategories(opts: { homeOnly?: boolean }): Promise<Category[]> {
-  if (!supabase) return demoCategories.filter((c) => !opts.homeOnly || c.show_on_home)
+async function loadCategories(opts: { homeOnly?: boolean; topOnly?: boolean }): Promise<Category[]> {
+  const topOnly = opts.topOnly || opts.homeOnly
+  if (!supabase) return demoCategories.filter((c) => (!opts.homeOnly || c.show_on_home) && (!topOnly || !c.parent_id))
   let q = supabase.from('categories').select('*').eq('is_visible', true).order('sort_order')
   if (opts.homeOnly) q = q.eq('show_on_home', true)
+  if (topOnly) q = q.is('parent_id', null)
   return must(await q)
+}
+
+/** Ids of a category plus its sub-categories, so a main category also lists its children's products. */
+async function categoryIdsFor(slug: string): Promise<string[]> {
+  const all = await getCategories()
+  const cat = all.find((c) => c.slug === slug)
+  return cat ? [cat.id, ...all.filter((c) => c.parent_id === cat.id).map((c) => c.id)] : []
 }
 
 export type ProductQuery = { categorySlug?: string; featured?: boolean; search?: string; kind?: 'single' | 'pack'; sort?: 'default' | 'newest'; limit?: number }
@@ -46,20 +56,20 @@ export function getProducts(query: ProductQuery = {}): Promise<Product[]> {
 }
 
 async function loadProducts(query: ProductQuery): Promise<Product[]> {
+  const catIds = query.categorySlug ? await categoryIdsFor(query.categorySlug) : null
   if (!supabase) {
     let list = demoProducts
-    if (query.categorySlug) list = list.filter((p) => p.category?.slug === query.categorySlug)
+    if (catIds) list = list.filter((p) => p.category_id && catIds.includes(p.category_id))
     if (query.featured) list = list.filter((p) => p.is_featured)
     if (query.kind) list = list.filter((p) => p.kind === query.kind)
     if (query.search) list = list.filter((p) => p.name.includes(query.search!))
     return list.slice(0, query.limit ?? list.length)
   }
-  const select = query.categorySlug ? PRODUCT_SELECT.replace('category:categories(', 'category:categories!inner(') : PRODUCT_SELECT
-  let q = supabase.from('products').select(select).eq('is_published', true)
+  let q = supabase.from('products').select(PRODUCT_SELECT).eq('is_published', true)
   if (query.featured) q = q.eq('is_featured', true)
   if (query.kind) q = q.eq('kind', query.kind)
   if (query.search) q = q.ilike('name', `%${query.search}%`)
-  if (query.categorySlug) q = q.eq('category.slug', query.categorySlug)
+  if (catIds) q = q.in('category_id', catIds)
   q = query.sort === 'newest' ? q.order('created_at', { ascending: false }) : q.order('sort_order').order('created_at', { ascending: false })
   if (query.limit) q = q.limit(query.limit)
   return (must(await q) as unknown as Product[]).map(sortSizes)
@@ -73,16 +83,6 @@ async function loadProduct(slug: string): Promise<Product | null> {
   if (!supabase) return demoProducts.find((p) => p.slug === slug) ?? null
   const data = must(await supabase.from('products').select(PRODUCT_SELECT).eq('slug', slug).maybeSingle()) as Product | null
   return data ? sortSizes(data) : null
-}
-
-export function getBanners(placement: BannerPlacement): Promise<Banner[]> {
-  return memo(`banners:${placement}`, () => loadBanners(placement))
-}
-
-async function loadBanners(placement: BannerPlacement): Promise<Banner[]> {
-  if (!supabase) return demoBanners.filter((b) => b.placement === placement)
-  // RLS already hides inactive / out-of-date banners for shoppers.
-  return must(await supabase.from('banners').select('*').eq('placement', placement).order('sort_order'))
 }
 
 export function getSettings(): Promise<Settings> {
@@ -158,29 +158,40 @@ export async function adminReorderCategories(ids: string[]) {
   await Promise.all(ids.map((id, i) => db().from('categories').update({ sort_order: i + 1 }).eq('id', id)))
 }
 
-export async function adminListBanners(): Promise<Banner[]> {
-  return must(await db().from('banners').select('*').order('placement').order('sort_order'))
-}
-
-export async function adminSaveBanner(b: Partial<Banner> & { title: string }) {
-  const { id, ...row } = b
-  if (id) must(await db().from('banners').update(row).eq('id', id))
-  else must(await db().from('banners').insert(row))
-}
-
-export async function adminDeleteBanner(id: string) {
-  must(await db().from('banners').delete().eq('id', id))
-}
-
 export async function adminSaveSettings(s: Settings) {
   must(await db().from('settings').update(s).eq('id', 1))
 }
 
 /** Uploads an image to the public `media` bucket and returns its URL. */
-export async function uploadImage(file: File, folder: 'products' | 'banners' | 'categories'): Promise<string> {
+export async function uploadImage(file: File, folder: 'products' | 'categories'): Promise<string> {
   const ext = file.name.split('.').pop() || 'png'
   const path = `${folder}/${crypto.randomUUID()}.${ext}`
   const { error } = await db().storage.from('media').upload(path, file, { cacheControl: '31536000', upsert: false })
   if (error) throw new Error(error.message)
   return db().storage.from('media').getPublicUrl(path).data.publicUrl
+}
+
+// ───────────────────────── reviews ─────────────────────────
+
+export function getReviews(): Promise<Review[]> {
+  return memo('reviews', async () => {
+    if (!supabase) return []
+    return must(await supabase.from('reviews').select('*').eq('is_published', true).order('sort_order').order('created_at', { ascending: false }))
+  })
+}
+
+export async function adminListReviews(): Promise<Review[]> {
+  return must(await db().from('reviews').select('*').order('sort_order').order('created_at', { ascending: false }))
+}
+
+export type ReviewInput = Partial<Review> & { author_name: string; body: string; rating: number }
+
+export async function adminSaveReview(r: ReviewInput) {
+  const { id, created_at: _created, ...row } = r
+  if (id) must(await db().from('reviews').update(row).eq('id', id))
+  else must(await db().from('reviews').insert(row))
+}
+
+export async function adminDeleteReview(id: string) {
+  must(await db().from('reviews').delete().eq('id', id))
 }

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, Navigate, NavLink, Outlet, useLocation } from 'react-router-dom'
-import { ImageIcon, LayoutGridIcon, LogOutIcon, MenuIcon, SettingsIcon, StoreIcon, TagIcon } from 'lucide-react'
+import { LayoutGridIcon, LogOutIcon, MenuIcon, MessageSquareQuoteIcon, SettingsIcon, StoreIcon, TagIcon } from 'lucide-react'
 import { Toaster } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet'
@@ -11,7 +11,7 @@ import { cn } from '@/lib/utils'
 const NAV = [
   { to: '/admin/products', label: 'المنتجات', icon: TagIcon },
   { to: '/admin/categories', label: 'الأقسام', icon: LayoutGridIcon },
-  { to: '/admin/banners', label: 'البانرات', icon: ImageIcon },
+  { to: '/admin/reviews', label: 'آراء العملاء', icon: MessageSquareQuoteIcon },
   { to: '/admin/settings', label: 'الإعدادات', icon: SettingsIcon },
 ]
 

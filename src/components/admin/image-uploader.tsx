@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils'
 const MAX_MB = 2
 
 /** Multiple images, first one is the main photo. Arrow moves an image one step toward the front. */
-export function ImageListUploader({ value, onChange, folder }: { value: string[]; onChange: (v: string[]) => void; folder: 'products' | 'banners' | 'categories' }) {
+export function ImageListUploader({ value, onChange, folder }: { value: string[]; onChange: (v: string[]) => void; folder: 'products' | 'categories' }) {
   const input = useRef<HTMLInputElement>(null)
   const [busy, setBusy] = useState(false)
 
@@ -69,7 +69,7 @@ export function ImageListUploader({ value, onChange, folder }: { value: string[]
   )
 }
 
-export function SingleImageUploader({ value, onChange, folder, label }: { value: string | null; onChange: (v: string | null) => void; folder: 'products' | 'banners' | 'categories'; label: string }) {
+export function SingleImageUploader({ value, onChange, folder, label }: { value: string | null; onChange: (v: string | null) => void; folder: 'products' | 'categories'; label: string }) {
   return (
     <div className="flex flex-col gap-2">
       <span className="text-sm font-medium">{label}</span>

@@ -16,7 +16,7 @@ const LoginPage = lazy(() => import('@/pages/admin/login'))
 const AdminProductsPage = lazy(() => import('@/pages/admin/products'))
 const AdminProductFormPage = lazy(() => import('@/pages/admin/product-form'))
 const AdminCategoriesPage = lazy(() => import('@/pages/admin/categories'))
-const AdminBannersPage = lazy(() => import('@/pages/admin/banners'))
+const AdminReviewsPage = lazy(() => import('@/pages/admin/reviews'))
 const AdminSettingsPage = lazy(() => import('@/pages/admin/settings'))
 
 export default function App() {
@@ -40,7 +40,7 @@ export default function App() {
                   <Route path="products" element={<AdminProductsPage />} />
                   <Route path="products/:id" element={<AdminProductFormPage />} />
                   <Route path="categories" element={<AdminCategoriesPage />} />
-                  <Route path="banners" element={<AdminBannersPage />} />
+                  <Route path="reviews" element={<AdminReviewsPage />} />
                   <Route path="settings" element={<AdminSettingsPage />} />
                 </Route>
               </Routes>

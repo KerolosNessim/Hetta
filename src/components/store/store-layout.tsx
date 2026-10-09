@@ -10,11 +10,9 @@ import { MenuIcon, SearchIcon, ShoppingCartIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/form-controls";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
-import { getBanners } from "@/lib/api";
 import { useCart } from "@/lib/cart";
 import { useSettings } from "@/lib/settings";
 import { isDemoMode } from "@/lib/supabase";
-import { useAsync } from "@/lib/use-async";
 import { cn } from "@/lib/utils";
 import { CUSTOM_STICKER_MESSAGE, whatsappLink } from "@/lib/whatsapp";
 import { CartSheet } from "./cart-sheet";
@@ -54,10 +52,11 @@ function isActive(to: string, pathname: string, search: string, hash: string) {
   return pathname === path && !search.includes('kind=pack')
 }
 
+const ANNOUNCEMENT = "شحن لكل محافظات مصر · الطلب بيكمل على الواتساب في ثانية";
+
 export function StoreLayout() {
   const { count, setOpen } = useCart();
   const { settings } = useSettings();
-  const { data: announce } = useAsync(() => getBanners("announcement"), []);
   const [menu, setMenu] = useState(false);
   const [q, setQ] = useState("");
   const navigate = useNavigate();
@@ -100,20 +99,20 @@ export function StoreLayout() {
           منتجاتك.
         </div>
       )}
-      {announce?.[0] && (
+      {(
         <div
           role="region"
           aria-label="إعلان"
           dir="ltr"
           className="group overflow-hidden py-2.5 text-xs text-white md:text-sm"
-          style={{ background: announce[0].bg_color }}
+          style={{ background: "#1B1B1B" }}
         >
           <div className="marquee-track flex w-max group-hover:[animation-play-state:paused]">
             {[0, 1].map((copy) => (
               <div key={copy} aria-hidden={copy === 1} className="flex shrink-0">
                 {Array.from({ length: 24 }, (_, i) => (
                   <span key={i} dir="rtl" className="flex items-center gap-6 pe-6 font-medium whitespace-nowrap">
-                    {announce[0].title}
+                    {ANNOUNCEMENT}
                     <span aria-hidden="true">✦</span>
                   </span>
                 ))}

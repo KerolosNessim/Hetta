@@ -22,7 +22,7 @@ const linkClass =
  */
 export function StoreFooter() {
   const { settings } = useSettings();
-  const { data: categories } = useAsync(() => getCategories(), []);
+  const { data: categories } = useAsync(() => getCategories({ topOnly: true }), []);
   const chat = settings.whatsapp_number
     ? whatsappLink(settings.whatsapp_number, CUSTOM_STICKER_MESSAGE)
     : null;

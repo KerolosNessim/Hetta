@@ -5,7 +5,6 @@ import { Field, Input, Select, Textarea } from '@/components/ui/form-controls'
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from '@/components/ui/sheet'
 import { useCart } from '@/lib/cart'
 import { useSettings } from '@/lib/settings'
-import { FINISH_LABEL } from '@/lib/types'
 import { formatPrice } from '@/lib/utils'
 import { GOVERNORATES, orderMessage, whatsappLink, type DeliveryInfo } from '@/lib/whatsapp'
 import { StickerArt } from './sticker-art'
@@ -56,7 +55,7 @@ export function CartSheet() {
                     <div className="flex min-w-0 flex-1 flex-col gap-1">
                       <div className="truncate font-semibold">{it.name}</div>
                       <div className="text-xs text-muted-foreground">
-                        {it.sizeName} · {FINISH_LABEL[it.finish]}
+                        {it.sizeName}
                       </div>
                       <div className="flex items-center justify-between">
                         <span className="font-bold text-primary">{formatPrice(it.price * it.qty)}</span>

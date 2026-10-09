@@ -11,7 +11,7 @@ export function ProductCard({ product, color }: { product: Product; color: strin
   const { add } = useCart()
   const price = startingPrice(product)
   const firstSize = product.product_sizes.find((s) => s.is_available)
-  const hasChoices = product.product_sizes.filter((s) => s.is_available).length > 1 || product.finishes.length > 1
+  const hasChoices = product.product_sizes.filter((s) => s.is_available).length > 1
 
   return (
     <article className="group animate-in fade-in slide-in-from-bottom-3 duration-500 transition-transform hover:-translate-y-1 flex flex-col gap-3 rounded-2xl border-2 border-ink bg-card p-3 md:p-4">
@@ -52,7 +52,7 @@ export function ProductCard({ product, color }: { product: Product; color: strin
             className="max-md:size-11 max-md:p-0"
             aria-label={`أضف ${product.name} للسلة`}
             onClick={() =>
-              add({ productId: product.id, slug: product.slug, name: product.name, color, sizeName: firstSize.name, finish: product.finishes[0] ?? 'matte', price: Number(firstSize.price) })
+              add({ productId: product.id, slug: product.slug, name: product.name, color, sizeName: firstSize.name, price: Number(firstSize.price) })
             }
           >
             <PlusIcon className="md:hidden" />

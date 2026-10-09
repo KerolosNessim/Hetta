@@ -1,16 +1,19 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { PencilIcon, PlusIcon, Trash2Icon } from 'lucide-react'
 import { toast } from 'sonner'
 import { PageHeader } from '@/components/admin/admin-layout'
 import { Button } from '@/components/ui/button'
 import { Input, Select, Switch } from '@/components/ui/form-controls'
+import { Pagination, paginate } from '@/components/ui/pagination'
 import { Badge, Card, Skeleton, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/misc'
 import { inkFor } from '@/components/store/sticker-art'
 import { adminDeleteProduct, adminListCategories, adminListProducts, adminUpdateProduct } from '@/lib/api'
-import { startingPrice } from '@/lib/types'
+import { categoryLabel, categoryTree, startingPrice } from '@/lib/types'
 import { useAsync } from '@/lib/use-async'
 import { cn, formatPrice } from '@/lib/utils'
+
+const PAGE_SIZE = 10
 
 type Tab = 'all' | 'published' | 'draft'
 
@@ -20,6 +23,14 @@ export default function AdminProductsPage() {
   const [tab, setTab] = useState<Tab>('all')
   const [q, setQ] = useState('')
   const [cat, setCat] = useState('')
+  const [page, setPage] = useState(1)
+
+  // main category id -> ids of its sub-categories, so filtering by a main category includes them
+  const catIdsUnder = useMemo(() => {
+    const m = new Map<string, Set<string>>()
+    for (const c of cats.data ?? []) if (c.parent_id) m.set(c.parent_id, (m.get(c.parent_id) ?? new Set()).add(c.id))
+    return m
+  }, [cats.data])
 
   const rows = useMemo(
     () =>
@@ -27,10 +38,14 @@ export default function AdminProductsPage() {
         (p) =>
           (tab === 'all' || (tab === 'published' ? p.is_published : !p.is_published)) &&
           (!q || p.name.includes(q)) &&
-          (!cat || p.category_id === cat),
+          (!cat || p.category_id === cat || (!!p.category_id && catIdsUnder.get(cat)?.has(p.category_id))),
       ),
-    [data, tab, q, cat],
+    [data, tab, q, cat, catIdsUnder],
   )
+
+  // a new filter starts from the first page
+  useEffect(() => setPage(1), [tab, q, cat])
+  const paged = paginate(rows, page, PAGE_SIZE)
 
   async function toggle(id: string, patch: { is_published?: boolean; is_featured?: boolean }) {
     setData((prev) => prev?.map((p) => (p.id === id ? { ...p, ...patch } : p)) ?? null)
@@ -89,8 +104,8 @@ export default function AdminProductsPage() {
           القسم
           <Select value={cat} onChange={(e) => setCat(e.target.value)} className="h-10 w-auto">
             <option value="">كل الأقسام</option>
-            {cats.data?.map((c) => (
-              <option key={c.id} value={c.id}>{c.name}</option>
+            {categoryTree(cats.data ?? []).map(({ cat: c, depth }) => (
+              <option key={c.id} value={c.id}>{depth ? `— ${c.name}` : c.name}</option>
             ))}
           </Select>
         </label>
@@ -117,7 +132,7 @@ export default function AdminProductsPage() {
                   <TableCell colSpan={7}><Skeleton className="h-10" /></TableCell>
                 </TableRow>
               ))}
-            {rows.map((p) => {
+            {paged.slice.map((p) => {
               const color = p.category?.color ?? '#0B6E6D'
               return (
                 <TableRow key={p.id}>
@@ -134,7 +149,7 @@ export default function AdminProductsPage() {
                       {!p.is_published && <Badge variant="muted">مسودة</Badge>}
                     </div>
                   </TableCell>
-                  <TableCell className="text-[#3e382f]">{p.category?.name ?? '—'}</TableCell>
+                  <TableCell className="text-[#3e382f]">{categoryLabel(p.category, cats.data ?? []) || '—'}</TableCell>
                   <TableCell>{formatPrice(startingPrice(p))}</TableCell>
                   <TableCell className="text-[#3e382f]">{p.product_sizes.map((s) => s.name).join('، ') || '—'}</TableCell>
                   <TableCell>
@@ -165,6 +180,14 @@ export default function AdminProductsPage() {
             )}
           </TableBody>
         </Table>
+        {rows.length > PAGE_SIZE && (
+          <div className="flex flex-wrap items-center justify-between gap-3 border-t px-4 py-3">
+            <p className="text-sm text-muted-foreground" aria-live="polite">
+              {`عرض ${(paged.from + 1).toLocaleString('ar-EG')}–${paged.to.toLocaleString('ar-EG')} من ${rows.length.toLocaleString('ar-EG')}`}
+            </p>
+            <Pagination variant="admin" page={paged.page} count={paged.count} onChange={setPage} className="justify-end" />
+          </div>
+        )}
       </Card>
     </>
   )

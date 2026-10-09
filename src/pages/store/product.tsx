@@ -6,10 +6,10 @@ import { Badge, Skeleton } from '@/components/ui/misc'
 import { ProductCard } from '@/components/store/product-card'
 import { StickerArt } from '@/components/store/sticker-art'
 import { WhatsappIcon } from '@/components/store/whatsapp-icon'
-import { getProductBySlug, getProducts } from '@/lib/api'
+import { getCategories, getProductBySlug, getProducts } from '@/lib/api'
 import { useCart } from '@/lib/cart'
 import { useSettings } from '@/lib/settings'
-import { BADGE_LABEL, FINISH_LABEL, type Finish } from '@/lib/types'
+import { BADGE_LABEL } from '@/lib/types'
 import { useAsync } from '@/lib/use-async'
 import { cn, formatPrice } from '@/lib/utils'
 import { whatsappLink } from '@/lib/whatsapp'
@@ -21,10 +21,11 @@ export default function ProductPage() {
     () => (product?.category ? getProducts({ categorySlug: product.category.slug, limit: 5 }) : Promise.resolve([])),
     [product?.id],
   )
+  const cats = useAsync(() => getCategories(), [])
+  const parentCat = product?.category?.parent_id ? cats.data?.find((c) => c.id === product.category!.parent_id) : undefined
   const { add } = useCart()
   const { settings } = useSettings()
   const [sizeIdx, setSizeIdx] = useState(0)
-  const [finish, setFinish] = useState<Finish>('matte')
   const [qty, setQty] = useState(1)
   const [image, setImage] = useState(0)
 
@@ -32,7 +33,6 @@ export default function ProductPage() {
     if (!product) return
     const firstAvailable = product.product_sizes.findIndex((s) => s.is_available)
     setSizeIdx(Math.max(0, firstAvailable))
-    setFinish(product.finishes[0] ?? 'matte')
     setQty(1)
     setImage(0)
     document.title = `${product.name} — حتة`
@@ -65,6 +65,11 @@ export default function ProductPage() {
     <div className="mx-auto max-w-6xl px-4 pt-6 pb-28 md:px-6 md:pb-0">
       <nav aria-label="مسار التصفح" className="mb-5 flex flex-wrap gap-1.5 text-sm text-muted-foreground">
         <Link to="/" className="hover:text-primary">الرئيسية</Link>/
+        {parentCat && (
+          <>
+            <Link to={`/shop?cat=${parentCat.slug}`} className="hover:text-primary">{parentCat.name}</Link>/
+          </>
+        )}
         {product.category && (
           <>
             <Link to={`/shop?cat=${product.category.slug}`} className="hover:text-primary">{product.category.name}</Link>/
@@ -128,25 +133,6 @@ export default function ProductPage() {
             </fieldset>
           )}
 
-          {product.finishes.length > 1 && (
-            <fieldset className="flex flex-col gap-3">
-              <legend className="mb-3 font-semibold">الخامة</legend>
-              <div className="flex gap-2.5">
-                {product.finishes.map((f) => (
-                  <button
-                    key={f}
-                    type="button"
-                    aria-pressed={f === finish}
-                    onClick={() => setFinish(f)}
-                    className={cn('h-12 flex-1 rounded-xl border-2 border-ink font-semibold transition outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50', f === finish ? 'bg-ink text-white' : 'bg-card hover:bg-secondary')}
-                  >
-                    {FINISH_LABEL[f]}
-                  </button>
-                ))}
-              </div>
-            </fieldset>
-          )}
-
           <div className="flex items-center justify-between">
             <span className="font-semibold">الكمية</span>
             <div className="flex items-center rounded-xl border-2 border-ink bg-card">
@@ -164,7 +150,7 @@ export default function ProductPage() {
               size="lg"
               className="flex-1"
               disabled={!canBuy}
-              onClick={() => size && add({ productId: product.id, slug: product.slug, name: product.name, color, sizeName: size.name, finish, price: Number(size.price) }, qty)}
+              onClick={() => size && add({ productId: product.id, slug: product.slug, name: product.name, color, sizeName: size.name, price: Number(size.price) }, qty)}
             >
               {canBuy ? 'أضف للسلة' : 'غير متاح دلوقتي'}
             </Button>

@@ -5,10 +5,10 @@ import { PageHeader } from '@/components/admin/admin-layout'
 import { SingleImageUploader } from '@/components/admin/image-uploader'
 import { inkFor } from '@/components/store/sticker-art'
 import { Button } from '@/components/ui/button'
-import { Field, Input, Label, Switch } from '@/components/ui/form-controls'
+import { Field, Input, Label, Select, Switch } from '@/components/ui/form-controls'
 import { Card, CardContent, CardHeader, CardTitle, Skeleton } from '@/components/ui/misc'
 import { adminDeleteCategory, adminListCategories, adminReorderCategories, adminSaveCategory } from '@/lib/api'
-import type { Category } from '@/lib/types'
+import { categoryTree, type Category } from '@/lib/types'
 import { useAsync } from '@/lib/use-async'
 import { cn, slugify } from '@/lib/utils'
 
@@ -22,13 +22,15 @@ export const BRAND_SWATCHES = [
 ]
 
 type Draft = Partial<Category> & { name: string; slug: string }
-const EMPTY: Draft = { name: '', slug: '', color: '#0B6E6D', image_url: null, is_visible: true, show_on_home: true }
+const EMPTY: Draft = { name: '', slug: '', color: '#0B6E6D', image_url: null, parent_id: null, is_visible: true, show_on_home: true }
 
 export default function AdminCategoriesPage() {
   const { data, loading, reload, setData } = useAsync(adminListCategories, [])
   const [draft, setDraft] = useState<Draft>(EMPTY)
   const [saving, setSaving] = useState(false)
   const editing = !!draft.id
+  const tree = categoryTree(data ?? [])
+  const hasChildren = !!draft.id && !!data?.some((x) => x.parent_id === draft.id)
 
   async function save(e: React.FormEvent) {
     e.preventDefault()
@@ -46,12 +48,13 @@ export default function AdminCategoriesPage() {
     }
   }
 
-  async function move(i: number, dir: -1 | 1) {
+  async function move(c: Category, dir: -1 | 1) {
     if (!data) return
-    const next = [...data]
-    ;[next[i], next[i + dir]] = [next[i + dir], next[i]]
-    setData(next)
-    await adminReorderCategories(next.map((c) => c.id))
+    const siblings = data.filter((x) => (x.parent_id ?? null) === (c.parent_id ?? null))
+    const i = siblings.findIndex((x) => x.id === c.id)
+    ;[siblings[i], siblings[i + dir]] = [siblings[i + dir], siblings[i]]
+    await adminReorderCategories(siblings.map((x) => x.id))
+    reload()
   }
 
   async function patch(c: Category, p: Partial<Category>) {
@@ -60,7 +63,7 @@ export default function AdminCategoriesPage() {
   }
 
   async function remove(c: Category) {
-    if (!confirm(`تمسح قسم "${c.name}"؟ المنتجات اللي فيه هتفضل بس من غير قسم.`)) return
+    if (!confirm(`تمسح قسم "${c.name}"؟ المنتجات اللي فيه هتفضل بس من غير قسم${data?.some((x) => x.parent_id === c.id) ? '، والأقسام الفرعية بتاعته هتتمسح معاه' : ''}.`)) return
     await adminDeleteCategory(c.id)
     toast.success('اتمسح')
     reload()
@@ -68,18 +71,21 @@ export default function AdminCategoriesPage() {
 
   return (
     <>
-      <PageHeader title="الأقسام" description="رتّب الأقسام بالأسهم، والترتيب ده هو اللي بيظهر في المتجر والرئيسية." />
+      <PageHeader title="الأقسام" description="الأقسام الرئيسية والفرعية. رتّبهم بالأسهم، والترتيب ده هو اللي بيظهر في المتجر والرئيسية." />
       <div className="flex flex-wrap items-start gap-5">
         <Card className="min-w-0 flex-[999_1_480px] overflow-hidden">
           {loading && <Skeleton className="m-4 h-40" />}
           <ul>
-            {data?.map((c, i) => (
-              <li key={c.id} className="flex flex-wrap items-center gap-3 border-b px-4 py-3 last:border-0">
+            {tree.map(({ cat: c, depth }) => {
+              const siblings = data!.filter((x) => (x.parent_id ?? null) === (c.parent_id ?? null))
+              const i = siblings.findIndex((x) => x.id === c.id)
+              return (
+              <li key={c.id} className={cn('flex flex-wrap items-center gap-3 border-b px-4 py-3 last:border-0', depth > 0 && 'bg-secondary/40 ps-10')}>
                 <div className="flex flex-col">
-                  <Button variant="ghost" size="iconSm" className="h-7" disabled={i === 0} aria-label={`طلّع ${c.name} لفوق`} onClick={() => move(i, -1)}>
+                  <Button variant="ghost" size="iconSm" className="h-7" disabled={i === 0} aria-label={`طلّع ${c.name} لفوق`} onClick={() => move(c, -1)}>
                     <ArrowUpIcon />
                   </Button>
-                  <Button variant="ghost" size="iconSm" className="h-7" disabled={i === data.length - 1} aria-label={`نزّل ${c.name} لتحت`} onClick={() => move(i, 1)}>
+                  <Button variant="ghost" size="iconSm" className="h-7" disabled={i === siblings.length - 1} aria-label={`نزّل ${c.name} لتحت`} onClick={() => move(c, 1)}>
                     <ArrowDownIcon />
                   </Button>
                 </div>
@@ -105,7 +111,8 @@ export default function AdminCategoriesPage() {
                   <Trash2Icon />
                 </Button>
               </li>
-            ))}
+              )
+            })}
             {!loading && !data?.length && <li className="p-10 text-center text-muted-foreground">لسه مفيش أقسام.</li>}
           </ul>
         </Card>
@@ -116,6 +123,12 @@ export default function AdminCategoriesPage() {
             <CardContent>
               <Field label="اسم القسم" htmlFor="cat-name">
                 <Input id="cat-name" placeholder="مثلاً: عربيات" value={draft.name} onChange={(e) => setDraft((d) => ({ ...d, name: e.target.value, slug: editing ? d.slug : slugify(e.target.value) }))} />
+              </Field>
+              <Field label="يتبع قسم" htmlFor="cat-parent" hint={hasChildren ? 'القسم ده فيه أقسام فرعية، فمينفعش يتحط جوه قسم تاني.' : 'سيبه "قسم رئيسي" لو مش فرعي.'}>
+                <Select id="cat-parent" disabled={hasChildren} value={draft.parent_id ?? ''} onChange={(e) => setDraft((d) => ({ ...d, parent_id: e.target.value || null }))}>
+                  <option value="">قسم رئيسي</option>
+                  {data?.filter((x) => !x.parent_id && x.id !== draft.id).map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}
+                </Select>
               </Field>
               <Field label="الرابط (slug)" htmlFor="cat-slug">
                 <Input id="cat-slug" dir="ltr" className="text-left" value={draft.slug} onChange={(e) => setDraft((d) => ({ ...d, slug: slugify(e.target.value) }))} />
